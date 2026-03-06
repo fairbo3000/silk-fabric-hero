@@ -13,6 +13,7 @@ uniform float uTime;            // elapsed seconds
 uniform float uScrollVelocity;  // signed scroll speed, -1..1
 uniform float uScrollPosition;  // normalised scroll, 0..1
 uniform float uMouseX;          // normalised horizontal mouse, -1..1
+uniform float uMouseY;          // normalised vertical mouse, 0..1 (0=top)
 uniform vec2  uResolution;      // viewport dimensions (px)
 
 // ── Varyings ────────────────────────────────────────────────
@@ -46,12 +47,24 @@ void main() {
     float t = uv.y;                               // 0 = top, 1 = bottom
     float amplitudeFactor = pow(1.0 - t, 1.4);   // gentle curve
 
-    // ── 2. Mouse wind bias ───────────────────────────────────
+    // ── 2. Mouse — localised soft dimple ────────────────────
     //
-    // uMouseX (-1..1) subtly shifts the mean rest position of the
-    // fabric, as if the viewer's presence disturbs the air.
-    // We apply a fraction so the effect is barely perceptible.
-    float mouseBias = uMouseX * 0.006;            // very subtle tilt only
+    // Convert mouse to UV space: mouseX -1..1 → 0..1
+    float mouseU = uMouseX * 0.5 + 0.5;
+    float mouseV = uMouseY;   // already 0..1, 0=top
+
+    // Distance from this vertex to the mouse position in UV space.
+    // We squash V distance so the influence is wider horizontally
+    // than vertically — like a light touch on soft fabric.
+    float dU = (uv.x - mouseU) * 1.0;
+    float dV = (uv.y - mouseV) * 1.8;  // tighter vertically
+    float mouseDist2 = dU * dU + dV * dV;
+
+    // Gaussian falloff — influence radius ~0.15 UV units
+    float mouseInfluence = exp(-mouseDist2 * 55.0);
+
+    // No lateral bias — mouse only creates a local Z push (dimple into screen)
+    float mouseBias = 0.0;
 
     // ── 3. Multi-frequency wind sway (X + Z) ────────────────
     //
@@ -82,16 +95,20 @@ void main() {
 
     // Z displacement — a second independent trio for depth shiver.
     // Much smaller: just enough to catch the light differently.
-    // Z ripples are the main deformation — tight waves across the surface
+    // Z ripples — ambient wind deformation across the surface
     float waveZ1  = sin(uTime * 0.4  + uv.y * 5.0 + 0.9)           * 0.40;
     float waveZ2  = sin(uTime * 0.85 + uv.y * 9.5 + 2.1)           * 0.30;
     float waveZ3  = sin(uTime * 1.4  + uv.x * 6.0 + uv.y * 4.0)   * 0.20;
     float waveZ4  = sin(uTime * 2.2  + uv.x * 10.0 + uv.y * 7.0)  * 0.10;
-    // Mouse adds a travelling ripple across the surface
-    float waveZMouse = sin(uTime * 1.0 + uv.x * 8.0 + uMouseX * 5.0) * 0.18;
-    float swayZ   = (waveZ1 + waveZ2 + waveZ3 + waveZ4 + waveZMouse)
-                  * 0.045                          // deeper Z deformation
-                  * amplitudeFactor;
+    float ambientZ = (waveZ1 + waveZ2 + waveZ3 + waveZ4) * 0.045 * amplitudeFactor;
+
+    // Mouse — a localised push outward (toward camera), rippling away from the touch point.
+    // A travelling ring ripple emanates outward from the mouse position.
+    float rippleRadius = sqrt(mouseDist2);
+    float ripple = sin(rippleRadius * 30.0 - uTime * 3.5) * exp(-mouseDist2 * 20.0);
+    float mouseDimple = (mouseInfluence * 0.07) + (ripple * 0.035);
+
+    float swayZ = ambientZ + mouseDimple;
 
     // ── 4. Scroll-driven vertical stretch (inertia) ──────────
     //

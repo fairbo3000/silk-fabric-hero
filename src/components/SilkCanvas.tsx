@@ -45,6 +45,7 @@ export default function SilkCanvas() {
       uScrollVelocity: { value: 0 },
       uScrollPosition: { value: 0 },
       uMouseX:         { value: 0 },
+      uMouseY:         { value: 0 },
       uResolution:     { value: new THREE.Vector2(W(), H()) },
       uWeaveScale:     { value: 200.0 },
     }
@@ -108,7 +109,9 @@ export default function SilkCanvas() {
 
     // ── Physics refs (no React state — direct uniform updates) ──
     const rawMouseX = { current: 0 }
+    const rawMouseY = { current: 0 }
     const smoothMouseX = { current: 0 }
+    const smoothMouseY = { current: 0 }
     const targetVelocity = { current: 0 }
     const smoothVelocity = { current: 0 }
     const lastScrollTime = { current: 0 }
@@ -116,6 +119,8 @@ export default function SilkCanvas() {
     // ── Mouse tracking ────────────────────────────────────────
     const onMouseMove = (e: MouseEvent) => {
       rawMouseX.current = (e.clientX / window.innerWidth) * 2 - 1
+      rawMouseY.current = 1 - (e.clientY / window.innerHeight) // 0=bottom, 1=top in UV space... wait, we want UV space: top=0
+      rawMouseY.current = e.clientY / window.innerHeight        // 0=top, 1=bottom — matches uv.y
     }
     window.addEventListener('mousemove', onMouseMove)
 
@@ -158,7 +163,9 @@ export default function SilkCanvas() {
 
       // Mouse lerp
       smoothMouseX.current += (rawMouseX.current - smoothMouseX.current) * 0.12
+      smoothMouseY.current += (rawMouseY.current - smoothMouseY.current) * 0.12
       uniforms.uMouseX.value = smoothMouseX.current
+      uniforms.uMouseY.value = smoothMouseY.current
 
       // Move mesh upward as user scrolls — the whole fabric lifts out.
       const { vH: curVH } = getViewportDims()
