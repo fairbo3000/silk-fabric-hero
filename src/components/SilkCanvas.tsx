@@ -166,16 +166,24 @@ export default function SilkCanvas() {
       smoothMouseY.current += (rawMouseY.current - smoothMouseY.current) * 0.12
       uniforms.uMouseX.value = smoothMouseX.current
 
-      // Convert screen-space mouseY into fabric UV space.
-      // The fabric is FABRIC_MULTIPLIER tall. At scroll=0, the top of the
-      // visible viewport sits START_ABOVE vH into the fabric.
-      // Fraction of fabric visible per viewport = 1/FABRIC_MULTIPLIER.
-      // Fabric UV of top of screen = START_ABOVE/FABRIC_MULTIPLIER + scroll * (1 - 1/FABRIC_MULTIPLIER)
-      // Then mouseY (0=top, 1=bottom of screen) maps linearly within that viewport slice.
-      const viewportFraction = 1 / FABRIC_MULTIPLIER
-      const fabricUvAtScreenTop = START_ABOVE / FABRIC_MULTIPLIER
-        + uniforms.uScrollPosition.value * (1 - viewportFraction)
-      uniforms.uMouseY.value = fabricUvAtScreenTop + smoothMouseY.current * viewportFraction
+      // Convert screen-space mouseY (0=top, 1=bottom of viewport) → fabric UV.
+      //
+      // mesh.position.y drives the fabric: startY + scroll * scrollTravel
+      // We need the inverse: given screen Y, what fabric UV is under it?
+      //
+      // In world space, viewport top = +curVH/2, bottom = -curVH/2.
+      // A screen Y of `s` (0=top,1=bottom) maps to world Y:
+      //   worldY = curVH/2 - s * curVH
+      //
+      // Fabric UV.y: the mesh is centred, so world Y of a UV vertex is:
+      //   vertexWorldY = mesh.position.y + (0.5 - uv.y) * curFabricH
+      // Solving for uv.y:
+      //   uv.y = 0.5 - (worldY - mesh.position.y) / curFabricH
+      const { vH: curVH2 } = getViewportDims()
+      const { fabricH: curFabricH2, startY: curStartY2, scrollTravel: curTravel2 } = getMeshPositions(curVH2)
+      const meshY = curStartY2 + uniforms.uScrollPosition.value * curTravel2
+      const screenWorldY = curVH2 / 2 - smoothMouseY.current * curVH2
+      uniforms.uMouseY.value = 0.5 - (screenWorldY - meshY) / curFabricH2
 
       // Move mesh upward as user scrolls — the whole fabric lifts out.
       const { vH: curVH } = getViewportDims()

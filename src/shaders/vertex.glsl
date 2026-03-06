@@ -102,8 +102,8 @@ void main() {
     float waveZ4  = sin(uTime * 2.2  + uv.x * 10.0 + uv.y * 7.0)  * 0.10;
     float ambientZ = (waveZ1 + waveZ2 + waveZ3 + waveZ4) * 0.045 * amplitudeFactor;
 
-    // Mouse — a localised push outward (toward camera), rippling away from the touch point.
-    // A travelling ring ripple emanates outward from the mouse position.
+    // Mouse — localised push + travelling ring ripple.
+    // No amplitudeFactor here — fabric is equally sensitive everywhere.
     float rippleRadius = sqrt(mouseDist2);
     float ripple = sin(rippleRadius * 30.0 - uTime * 3.5) * exp(-mouseDist2 * 20.0);
     float mouseDimple = (mouseInfluence * 0.07) + (ripple * 0.035);
