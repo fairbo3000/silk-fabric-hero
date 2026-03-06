@@ -165,7 +165,17 @@ export default function SilkCanvas() {
       smoothMouseX.current += (rawMouseX.current - smoothMouseX.current) * 0.12
       smoothMouseY.current += (rawMouseY.current - smoothMouseY.current) * 0.12
       uniforms.uMouseX.value = smoothMouseX.current
-      uniforms.uMouseY.value = smoothMouseY.current
+
+      // Convert screen-space mouseY into fabric UV space.
+      // The fabric is FABRIC_MULTIPLIER tall. At scroll=0, the top of the
+      // visible viewport sits START_ABOVE vH into the fabric.
+      // Fraction of fabric visible per viewport = 1/FABRIC_MULTIPLIER.
+      // Fabric UV of top of screen = START_ABOVE/FABRIC_MULTIPLIER + scroll * (1 - 1/FABRIC_MULTIPLIER)
+      // Then mouseY (0=top, 1=bottom of screen) maps linearly within that viewport slice.
+      const viewportFraction = 1 / FABRIC_MULTIPLIER
+      const fabricUvAtScreenTop = START_ABOVE / FABRIC_MULTIPLIER
+        + uniforms.uScrollPosition.value * (1 - viewportFraction)
+      uniforms.uMouseY.value = fabricUvAtScreenTop + smoothMouseY.current * viewportFraction
 
       // Move mesh upward as user scrolls — the whole fabric lifts out.
       const { vH: curVH } = getViewportDims()
