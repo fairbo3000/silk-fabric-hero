@@ -51,11 +51,10 @@ void main() {
     //
     // Convert mouse to UV space: mouseX -1..1 → 0..1
     float mouseU = uMouseX * 0.5 + 0.5;
-    float mouseV = uMouseY;   // already 0..1, 0=top
+    // uMouseY is in "shader UV space" where 0=top, 1=bottom.
+    // Three.js uv.y is 0=bottom, 1=top — so flip for comparison.
+    float mouseV = 1.0 - uMouseY;
 
-    // Distance from this vertex to the mouse position in UV space.
-    // We squash V distance so the influence is wider horizontally
-    // than vertically — like a light touch on soft fabric.
     float dU = (uv.x - mouseU) * 1.0;
     float dV = (uv.y - mouseV) * 1.8;  // tighter vertically
     float mouseDist2 = dU * dU + dV * dV;
