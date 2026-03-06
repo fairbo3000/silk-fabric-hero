@@ -22,8 +22,8 @@ varying vec3  vNormal;          // world-space normal for lighting
 varying float vSway;            // sway magnitude (for shimmer in frag)
 
 // ── Constants ───────────────────────────────────────────────
-// Max X-displacement — near zero, fabric hangs straight
-const float MAX_SWAY  = 0.012;
+// Max X-displacement — gentle sway, fabric hangs mostly straight
+const float MAX_SWAY  = 0.06;
 
 // Max vertical stretch factor (as a fraction)
 const float MAX_STRETCH = 0.06;
@@ -63,7 +63,8 @@ void main() {
     float mouseInfluence = exp(-mouseDist2 * 55.0);
 
     // No lateral bias — mouse only creates a local Z push (dimple into screen)
-    float mouseBias = 0.0;
+    // Gentle lateral bias from mouse — fabric leans slightly toward cursor
+    float mouseBias = uMouseX * 0.025;
 
     // ── 3. Multi-frequency wind sway (X + Z) ────────────────
     //
