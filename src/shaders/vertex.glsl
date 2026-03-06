@@ -21,11 +21,11 @@ varying vec3  vNormal;          // world-space normal for lighting
 varying float vSway;            // sway magnitude (for shimmer in frag)
 
 // ── Constants ───────────────────────────────────────────────
-// Max X-displacement in world units
-const float MAX_SWAY  = 0.18;
+// Max X-displacement — near zero, fabric hangs straight
+const float MAX_SWAY  = 0.012;
 
 // Max vertical stretch factor (as a fraction)
-const float MAX_STRETCH = 0.12;
+const float MAX_STRETCH = 0.06;
 
 
 // ── Utility: smooth hash (for micro-variation) ───────────────
@@ -51,7 +51,7 @@ void main() {
     // uMouseX (-1..1) subtly shifts the mean rest position of the
     // fabric, as if the viewer's presence disturbs the air.
     // We apply a fraction so the effect is barely perceptible.
-    float mouseBias = uMouseX * 0.08;             // stronger mouse influence
+    float mouseBias = uMouseX * 0.006;            // very subtle tilt only
 
     // ── 3. Multi-frequency wind sway (X + Z) ────────────────
     //
@@ -82,12 +82,15 @@ void main() {
 
     // Z displacement — a second independent trio for depth shiver.
     // Much smaller: just enough to catch the light differently.
-    float waveZ1  = sin(uTime * 0.31 + uv.y * 3.5 + 0.9) * 0.45;
-    float waveZ2  = sin(uTime * 0.74 + uv.y * 6.2 + 2.1) * 0.35;
-    float waveZ3  = sin(uTime * 1.3  + uv.x * 4.8 + uv.y * 2.7) * 0.25;
-    float waveZ4  = sin(uTime * 2.1  + uv.x * 6.1 + uv.y * 5.3) * 0.15;
-    float swayZ   = (waveZ1 + waveZ2 + waveZ3 + waveZ4)
-                  * 0.025                          // Z range: more visible depth
+    // Z ripples are the main deformation — tight waves across the surface
+    float waveZ1  = sin(uTime * 0.4  + uv.y * 5.0 + 0.9)           * 0.40;
+    float waveZ2  = sin(uTime * 0.85 + uv.y * 9.5 + 2.1)           * 0.30;
+    float waveZ3  = sin(uTime * 1.4  + uv.x * 6.0 + uv.y * 4.0)   * 0.20;
+    float waveZ4  = sin(uTime * 2.2  + uv.x * 10.0 + uv.y * 7.0)  * 0.10;
+    // Mouse adds a travelling ripple across the surface
+    float waveZMouse = sin(uTime * 1.0 + uv.x * 8.0 + uMouseX * 5.0) * 0.18;
+    float swayZ   = (waveZ1 + waveZ2 + waveZ3 + waveZ4 + waveZMouse)
+                  * 0.045                          // deeper Z deformation
                   * amplitudeFactor;
 
     // ── 4. Scroll-driven vertical stretch (inertia) ──────────
